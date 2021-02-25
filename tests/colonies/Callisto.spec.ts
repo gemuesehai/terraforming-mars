@@ -1,43 +1,44 @@
-import { expect } from "chai";
-import { Callisto } from "../../src/colonies/Callisto";
-import { Color } from "../../src/Color";
-import { Player } from "../../src/Player";
-import { Game } from "../../src/Game";
-import { Resources } from "../../src/Resources";
+import {expect} from 'chai';
+import {Callisto} from '../../src/colonies/Callisto';
+import {Game} from '../../src/Game';
+import {Player} from '../../src/Player';
+import {Resources} from '../../src/Resources';
+import {TestPlayers} from '../TestingUtils';
 
-describe("Callisto", function() {
-    let callisto: Callisto, player: Player, player2: Player, game: Game;
 
-    beforeEach(function() {
-        callisto = new Callisto();
-        player = new Player("test", Color.BLUE, false);
-        player2 = new Player("test2", Color.RED, false);
-        game = new Game("foobar", [player, player2], player);
-        game.gameOptions.coloniesExtension = true;
-        game.colonies.push(callisto);
-    });
+describe('Callisto', function() {
+  let callisto: Callisto; let player: Player; let player2: Player; let game: Game;
 
-    it("Should build", function() {
-        callisto.onColonyPlaced(player, game);
-        expect(player.getProduction(Resources.ENERGY)).to.eq(1);
-        expect(player2.getProduction(Resources.ENERGY)).to.eq(0);
-    });
+  beforeEach(function() {
+    callisto = new Callisto();
+    player = TestPlayers.BLUE.newPlayer();
+    player2 = TestPlayers.RED.newPlayer();
+    game = Game.newInstance('foobar', [player, player2], player);
+    game.gameOptions.coloniesExtension = true;
+    game.colonies.push(callisto);
+  });
 
-    it("Should trade", function() {
-        callisto.trade(player, game);
-        expect(player.energy).to.eq(2);
-        expect(player2.energy).to.eq(0);
-    });
+  it('Should build', function() {
+    callisto.addColony(player);
+    expect(player.getProduction(Resources.ENERGY)).to.eq(1);
+    expect(player2.getProduction(Resources.ENERGY)).to.eq(0);
+  });
 
-    it("Should give trade bonus", function() {
-        callisto.onColonyPlaced(player, game);
+  it('Should trade', function() {
+    callisto.trade(player);
+    expect(player.energy).to.eq(2);
+    expect(player2.energy).to.eq(0);
+  });
 
-        callisto.trade(player2, game);
-        game.deferredActions.runAll(() => {});
+  it('Should give trade bonus', function() {
+    callisto.addColony(player);
 
-        expect(player.getProduction(Resources.ENERGY)).to.eq(1);
-        expect(player2.getProduction(Resources.ENERGY)).to.eq(0);
-        expect(player.energy).to.eq(3);
-        expect(player2.energy).to.eq(2);
-    });
+    callisto.trade(player2);
+    game.deferredActions.runAll(() => {});
+
+    expect(player.getProduction(Resources.ENERGY)).to.eq(1);
+    expect(player2.getProduction(Resources.ENERGY)).to.eq(0);
+    expect(player.energy).to.eq(3);
+    expect(player2.energy).to.eq(2);
+  });
 });

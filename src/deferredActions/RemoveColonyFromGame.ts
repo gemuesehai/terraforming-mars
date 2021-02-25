@@ -1,30 +1,30 @@
-import { Game } from "../Game";
-import { Player } from "../Player";
-import { ColonyName } from "../colonies/ColonyName";
-import { SelectColony } from "../inputs/SelectColony";
-import { ColonyModel } from "../models/ColonyModel";
-import { DeferredAction } from "./DeferredAction";
+import {Player} from '../Player';
+import {ColonyName} from '../colonies/ColonyName';
+import {SelectColony} from '../inputs/SelectColony';
+import {ColonyModel} from '../models/ColonyModel';
+import {DeferredAction, Priority} from './DeferredAction';
 
 export class RemoveColonyFromGame implements DeferredAction {
-    constructor(
+  public priority = Priority.DEFAULT;
+  constructor(
         public player: Player,
-        public game: Game
-    ){}
+  ) {}
 
-    public execute() {
-        let coloniesModel: Array<ColonyModel> = this.game.getColoniesModel(this.game.colonies);
-        let removeColony = new SelectColony("Select colony to remove", "Remove colony", coloniesModel, (colonyName: ColonyName) => {
-            this.game.colonies.forEach(colony => {
-                if (colony.name === colonyName) {
-                    this.game.colonies.splice(this.game.colonies.indexOf(colony),1);
-                    if (this.game.colonyDealer === undefined) return;
-                    this.game.colonyDealer.discardedColonies.push(colony);
-                }
-                return undefined;
-            });
-            return undefined;
-        });
+  public execute() {
+    const game = this.player.game;
+    const coloniesModel: Array<ColonyModel> = game.getColoniesModel(game.colonies);
+    const removeColony = new SelectColony('Select colony tile to remove', 'Remove colony', coloniesModel, (colonyName: ColonyName) => {
+      game.colonies.forEach((colony) => {
+        if (colony.name === colonyName) {
+          game.colonies.splice(game.colonies.indexOf(colony), 1);
+          if (game.colonyDealer === undefined) return;
+          game.colonyDealer.discardedColonies.push(colony);
+        }
+        return undefined;
+      });
+      return undefined;
+    });
 
-        return removeColony;
-    }
-}    
+    return removeColony;
+  }
+}

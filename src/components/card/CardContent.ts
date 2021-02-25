@@ -1,32 +1,46 @@
-import Vue from "vue";
-import { CardMetadata } from "../../cards/CardMetadata";
-import { CardRequirementsComponent } from "./CardRequirementsComponent";
-import { CardVictoryPoints } from "./CardVictoryPoints";
-import { CardDescription } from "./CardDescription";
+import Vue from 'vue';
+import {CardMetadata} from '../../cards/CardMetadata';
+import {CardRequirementsComponent} from './CardRequirementsComponent';
+import {CardVictoryPoints} from './CardVictoryPoints';
+import {CardDescription} from './CardDescription';
+import {CardRenderData} from './CardRenderData';
+import {CardRequirements} from '../../cards/CardRequirements';
 
-export const CardContent = Vue.component("CardContent", {
-    props: {
-        metadata: {
-            type: Object as () => CardMetadata,
-            required: true,
-        },
+export const CardContent = Vue.component('CardContent', {
+  props: {
+    metadata: {
+      type: Object as () => CardMetadata,
+      required: true,
     },
-    components: {
-        CardRequirementsComponent,
-        CardVictoryPoints,
-        CardDescription,
+    requirements: {
+      type: Object as () => CardRequirements,
     },
-    methods: {
-        getClasses: function (): string {
-            const classes: Array<string> = ["card-content"];
-            return classes.join(" ");
-        },
+    isCorporation: {
+      type: Boolean,
+      required: true,
     },
-    template: `
+  },
+  components: {
+    CardRequirementsComponent,
+    CardVictoryPoints,
+    CardDescription,
+    CardRenderData,
+  },
+  methods: {
+    getClasses: function(): string {
+      const classes: Array<string> = ['card-content'];
+      if (this.isCorporation) {
+        classes.push('card-content-corporation');
+      }
+      return classes.join(' ');
+    },
+  },
+  template: `
         <div :class="getClasses()">
-            <CardRequirementsComponent v-if="metadata.requirements !== undefined" :requirements="metadata.requirements"/>
-            <CardDescription v-if="metadata.description !== undefined" :text="metadata.description" />
-            <CardVictoryPoints v-if="metadata.victoryPoints !== undefined" :amount="metadata.victoryPoints" />
+            <CardRequirementsComponent v-if="requirements !== undefined" :requirements="requirements"/>
+            <CardRenderData v-if="metadata.renderData !== undefined" :renderData="metadata.renderData" />
+            <CardDescription v-if="metadata.description !== undefined" :item="metadata.description" />
+            <CardVictoryPoints v-if="metadata.victoryPoints !== undefined" :victoryPoints="metadata.victoryPoints" />
         </div>
     `,
 });

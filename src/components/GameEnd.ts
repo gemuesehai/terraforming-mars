@@ -1,59 +1,68 @@
-import Vue from "vue";
-import { PlayerModel } from "../models/PlayerModel";
-import { Board } from "./Board";
-import { LogPanel } from "./LogPanel";
-import { Button } from "../components/common/Button";
-import { playerColorClass } from "../utils/utils";
+import Vue from 'vue';
+import {PlayerModel} from '../models/PlayerModel';
+import {Board} from './Board';
+import {LogPanel} from './LogPanel';
+import {Button} from '../components/common/Button';
+import {playerColorClass} from '../utils/utils';
+import {Timer} from '../Timer';
 
-export const GameEnd = Vue.component("game-end", {
-    props: {
-        player: {
-            type: Object as () => PlayerModel
-        }
+import * as constants from '../constants';
+
+export const GameEnd = Vue.component('game-end', {
+  props: {
+    player: {
+      type: Object as () => PlayerModel,
     },
-    data: function () {
-        return {}
+  },
+  data: function() {
+    return {
+      constants,
+    };
+  },
+  components: {
+    'board': Board,
+    'log-panel': LogPanel,
+    'Button': Button,
+  },
+  methods: {
+    getEndGamePlayerHighlightColorClass: function(color: string): string {
+      return playerColorClass(color.toLowerCase(), 'bg');
     },
-    components: {
-        "board": Board,
-        "log-panel": LogPanel,
-        "Button": Button
+    getEndGamePlayerRowColorClass: function(color: string): string {
+      return playerColorClass(color.toLowerCase(), 'bg_transparent');
     },
-    methods: {
-        getEndGamePlayerHighlightColorClass: function (color: string): string {
-            return playerColorClass(color.toLowerCase(), "bg");
-        },
-        getEndGamePlayerRowColorClass: function (color: string): string {
-            return playerColorClass(color.toLowerCase(), "bg_transparent");
-        },
-        getSortedPlayers: function () {
-            this.player.players.sort(function (a:PlayerModel, b:PlayerModel){
-                if (a.victoryPointsBreakdown.total < b.victoryPointsBreakdown.total) return -1;
-                if (a.victoryPointsBreakdown.total > b.victoryPointsBreakdown.total) return 1;
-                if (a.megaCredits < b.megaCredits) return -1;
-                if (a.megaCredits > b.megaCredits) return 1;
-                return 0;
-            });
-            return this.player.players.reverse();
-        },
-        getWinners: function(){
-            const sortedPlayers = this.getSortedPlayers();
-            const firstWinner = sortedPlayers[0];
-            const winners: PlayerModel[] = [firstWinner];
-            for (let i = 1; i < sortedPlayers.length; i++)
-                if (sortedPlayers[i].victoryPointsBreakdown.total === firstWinner.victoryPointsBreakdown.total &&
+    getTimer: function(p: PlayerModel): string {
+      return Timer.toString(p.timer);
+    },
+    getSortedPlayers: function() {
+      this.player.players.sort(function(a:PlayerModel, b:PlayerModel) {
+        if (a.victoryPointsBreakdown.total < b.victoryPointsBreakdown.total) return -1;
+        if (a.victoryPointsBreakdown.total > b.victoryPointsBreakdown.total) return 1;
+        if (a.megaCredits < b.megaCredits) return -1;
+        if (a.megaCredits > b.megaCredits) return 1;
+        return 0;
+      });
+      return this.player.players.reverse();
+    },
+    getWinners: function() {
+      const sortedPlayers = this.getSortedPlayers();
+      const firstWinner = sortedPlayers[0];
+      const winners: PlayerModel[] = [firstWinner];
+      for (let i = 1; i < sortedPlayers.length; i++) {
+        if (sortedPlayers[i].victoryPointsBreakdown.total === firstWinner.victoryPointsBreakdown.total &&
                     sortedPlayers[i].megaCredits === firstWinner.megaCredits) {
-                        winners.push(sortedPlayers[i]);
-                }
-            return winners;
-        },
-        isSoloGame: function (): boolean {
-            return this.player.players.length === 1;
+          winners.push(sortedPlayers[i]);
         }
+      }
+      return winners;
     },
-    template: `
+    isSoloGame: function(): boolean {
+      return this.player.players.length === 1;
+    },
+  },
+  template: `
         <div id="game-end" class="game_end_cont">
-            <h1>Terraforming Mars - Game finished!</h1>
+            <h1>{{ constants.APP_NAME }} - Game finished!</h1>
             <div class="game_end">
                 <div v-if="isSoloGame()">
                     <div v-if="player.isSoloModeWin">
@@ -95,7 +104,7 @@ export const GameEnd = Vue.component("game-end", {
                     </a>
                 </div>
                 <div v-if="!isSoloGame() || player.isSoloModeWin" class="game-end-winer-announcement">
-                    <span v-for="p in getWinners()"><log-player :class="getEndGamePlayerHighlightColorClass(p.color)">{{ p.name }}</log-player></span> won!
+                    <span v-for="p in getWinners()"><span :class="'log-player ' + getEndGamePlayerHighlightColorClass(p.color)">{{ p.name }}</span></span> won!
                 </div>
                 <div class="game_end_victory_points">
                     <h2 v-i18n>Victory points breakdown after<span> {{player.generation}} </span>generations</h2>
@@ -109,8 +118,12 @@ export const GameEnd = Vue.component("game-end", {
                                 <th>Awards</th>
                                 <th>Greenery</th>
                                 <th>City</th>
+                                <th v-if="player.moon !== undefined">Moon Roads</th>
+                                <th v-if="player.moon !== undefined">Moon Colonies</th>
+                                <th v-if="player.moon !== undefined">Moon Mines</th>
                                 <th>VP</th>
                                 <th>MC</th>
+                                <th v-if="player.gameOptions.showTimers">Timer</th>
                                 <th><div class="game-end-total-column">Total</div></th>
                             </tr>
                         </thead>
@@ -123,8 +136,12 @@ export const GameEnd = Vue.component("game-end", {
                                 <td>{{ p.victoryPointsBreakdown.awards }}</td>
                                 <td>{{ p.victoryPointsBreakdown.greenery }}</td>
                                 <td>{{ p.victoryPointsBreakdown.city }}</td>
+                                <td v-if="player.moon !== undefined">{{ p.victoryPointsBreakdown.moonRoads }}</td>
+                                <td v-if="player.moon !== undefined">{{ p.victoryPointsBreakdown.moonColonies }}</td>
+                                <td v-if="player.moon !== undefined">{{ p.victoryPointsBreakdown.moonMines }}</td>
                                 <td>{{ p.victoryPointsBreakdown.victoryPoints }}</td>
                                 <td>{{ p.megaCredits }}</td>
+                                <td v-if="player.gameOptions.showTimers">{{ getTimer(p) }}</td>
                                 <td>{{ p.victoryPointsBreakdown.total }}</td>
                             </tr>
                         </tbody>
@@ -134,7 +151,7 @@ export const GameEnd = Vue.component("game-end", {
                     <div class="game-end-flexrow">
                         <div v-for="p in getSortedPlayers()" class="game-end-column">
                             <div class="game-end-winer-scorebreak-player-title">
-                                <log-player :class="getEndGamePlayerHighlightColorClass(p.color)"><a :href="'/player?id='+p.id+'&noredirect'">{{p.name}}</a></log-player>
+                                <span :class="'log-player ' + getEndGamePlayerHighlightColorClass(p.color)"><a :href="'/player?id='+p.id+'&noredirect'">{{p.name}}</a></span>
                             </div>
                             <div v-for="v in p.victoryPointsBreakdown.detailsCards">
                                 {{v}}
@@ -151,13 +168,13 @@ export const GameEnd = Vue.component("game-end", {
                 <div class="game-end-flexrow">
                 <div class="game_end_block--board game-end-column">
                     <h2 v-i18n>Final situation on the board</h2>
-                    <board 
-                        :spaces="player.spaces" 
-                        :venusNextExtension="player.venusNextExtension" 
-                        :venusScaleLevel="player.venusScaleLevel" 
-                        :boardName ="player.boardName"
-                        :oceans_count="player.oceans" 
-                        :oxygen_level="player.oxygenLevel" 
+                    <board
+                        :spaces="player.spaces"
+                        :venusNextExtension="player.gameOptions.venusNextExtension"
+                        :venusScaleLevel="player.venusScaleLevel"
+                        :boardName ="player.gameOptions.boardName"
+                        :oceans_count="player.oceans"
+                        :oxygen_level="player.oxygenLevel"
                         :temperature="player.temperature"
                         :shouldNotify="false"></board>
                 </div>
@@ -168,6 +185,6 @@ export const GameEnd = Vue.component("game-end", {
                 </div>
             </div>
         </div>
-    `
+    `,
 });
 

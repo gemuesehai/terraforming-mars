@@ -1,14 +1,20 @@
+// A base configuration for src and tests, and also the config
+// Visual Studio Code reads
 {
+    // Compiler options are mostly for the sub-configurations
     "compilerOptions": {
         "declaration": true,
-        "module": "commonjs",
+        "declarationMap": true,
         "lib": ["dom"],
+        "incremental": true,
+
+        "module": "commonjs",
+
+        "strict": true,
         "noImplicitAny": true,
         "noImplicitReturns": true,
         "noUnusedLocals": true,
         "noUnusedParameters": true,
-        "outDir": "dist",
-        "strict": true,
         "removeComments": true,
         "preserveConstEnums": true,
         "skipLibCheck": true,
@@ -16,11 +22,11 @@
         "target": "es5",
         "types": ["node"],
         "moduleResolution": "node",
-        "resolveJsonModule": true
+        "resolveJsonModule": true,
+        "allowUnreachableCode": false,
     },
+    // This gives the VS Code IDE its magic.
     "include": [
-        "src/**/*.ts",
-        "script.ts",
-        "server.ts"
+        "**/*.ts",
     ]
 }

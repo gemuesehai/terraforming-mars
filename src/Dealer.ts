@@ -1,184 +1,121 @@
-import { CardName } from "./CardName";
-import { COLONIES_CARD_MANIFEST } from "./cards/colonies/ColoniesCardManifest";
-import { CorporationCard } from "./cards/corporation/CorporationCard";
-import { IProjectCard } from "./cards/IProjectCard";
-import { PRELUDE_CARD_MANIFEST } from "./cards/prelude/PreludeCardManifest";
-import { PROMO_CARD_MANIFEST } from "./cards/promo/PromoCardManifest";
-import { BASE_CARD_MANIFEST, CORP_ERA_CARD_MANIFEST } from "./cards/StandardCardManifests";
-import { TURMOIL_CARD_MANIFEST } from "./cards/turmoil/TurmoilCardManifest";
-import { VENUS_CARD_MANIFEST } from "./cards/venusNext/VenusCardManifest";
-import { COMMUNITY_CARD_MANIFEST } from "./cards/community/CommunityCardManifest";
-import { ILoadable } from "./ILoadable";
-import { SerializedDealer } from "./SerializedDealer"; 
-import { CardManifest } from "./cards/CardManifest";
-import { ICardFactory } from "./cards/ICardFactory";
-import { CardTypes, Deck } from "./Deck";
-import { GameModule } from "./GameModule";
-import { CardFinder} from "./CardFinder";
-import { ARES_CARD_MANIFEST } from "./cards/ares/AresCardManifest";
+import {CorporationCard} from './cards/corporation/CorporationCard';
+import {IProjectCard} from './cards/IProjectCard';
+import {ISerializable} from './ISerializable';
+import {SerializedDealer} from './SerializedDealer';
+import {CardFinder} from './CardFinder';
+import {CardLoader} from './CardLoader';
+import {CardName} from './CardName';
+import {LogHelper} from './LogHelper';
+import {Game} from './Game';
 
-export class Dealer implements ILoadable<SerializedDealer, Dealer>{
+export class Dealer implements ISerializable<SerializedDealer> {
     public deck: Array<IProjectCard> = [];
     public preludeDeck: Array<IProjectCard> = [];
     public discarded: Array<IProjectCard> = [];
     public corporationCards: Array<CorporationCard> = [];
-    private useCorporateEra: boolean = true;
-    private usePreludeExtension: boolean = false;
-    private useVenusNextExtension: boolean = false;   
-    private useColoniesNextExtension: boolean = false;
-    private usePromoCards: boolean = false;
-    private useTurmoilExtension: boolean = false;
-    private useAresExtension: boolean = false;
 
-    constructor(
-            useCorporateEra: boolean,
-            usePreludeExtension: boolean,
-            useVenusNextExtension: boolean,
-            useColoniesNextExtension : boolean,
-            usePromoCards: boolean,
-            useTurmoilExtension: boolean,
-            useAresExtension: boolean,
-            useCommunityCards: boolean = false,
-            cardsBlackList?: Array<CardName>
-        ) {
-        this.useCorporateEra = useCorporateEra;
-        this.usePreludeExtension = usePreludeExtension;
-        this.useVenusNextExtension = useVenusNextExtension;
-        this.useColoniesNextExtension = useColoniesNextExtension;
-        this.usePromoCards = usePromoCards;
-        this.useTurmoilExtension = useTurmoilExtension;
-        this.useAresExtension = useAresExtension
+    private constructor() { }
 
-        const deck:Array<IProjectCard> = [];
-        const preludeDeck:Array<IProjectCard> = [];
-        const projectCardsToRemove:Array<String> = [];
-        const corporationCards: Array<CorporationCard> = [];
+    public static newInstance(loader: CardLoader): Dealer {
+      const dealer = new Dealer();
 
-        function include(cf: ICardFactory<CardTypes>) : boolean {
-            const expansion = cf.compatibility;
-            switch(expansion) {
-                case undefined:
-                    return true;
-                case GameModule.Venus:
-                    return useVenusNextExtension;
-                case GameModule.Colonies:
-                    return useColoniesNextExtension;
-                case GameModule.Turmoil:
-                    return useTurmoilExtension;
-                default:
-                    throw("Unhandled expansion type: " + expansion);                    
-            }
-        }
-        function addToDeck<T extends CardTypes>(deck: Array<T>, cards: Deck<T>): void {
-            const cardInstances = cards.cards
-                .filter(cf => include(cf))
-                .map(cf => new cf.factory());
-            deck.push(...cardInstances);
-        }
-        function addToDecks(manifest: CardManifest) {
-            addToDeck(deck, manifest.projectCards);
-            addToDeck(corporationCards, manifest.corporationCards);
-            addToDeck(preludeDeck, manifest.preludeCards);
-            projectCardsToRemove.push(...manifest.projectCardsToRemove);
-        }
-        addToDecks(BASE_CARD_MANIFEST);
-        if (this.useCorporateEra) {
-            addToDecks(CORP_ERA_CARD_MANIFEST);
-        }
-        if (this.usePreludeExtension) {
-            addToDecks(PRELUDE_CARD_MANIFEST);
-        }
-        if (this.useVenusNextExtension) {
-            addToDecks(VENUS_CARD_MANIFEST);
-        }
-        if (this.useColoniesNextExtension) {
-            addToDecks(COLONIES_CARD_MANIFEST);
-        }
-        if (this.useTurmoilExtension) {
-            addToDecks(TURMOIL_CARD_MANIFEST);
-        }
-        if (this.useAresExtension) {
-            addToDecks(ARES_CARD_MANIFEST);
-        }
-        if (this.usePromoCards) {
-            addToDecks(PROMO_CARD_MANIFEST);
-        }
-        if (useCommunityCards) {
-            addToDecks(COMMUNITY_CARD_MANIFEST);
-        }
-        if (cardsBlackList) {
-            projectCardsToRemove.push(...cardsBlackList);
-        }
-        const filteredDeck = deck.filter((card) => !projectCardsToRemove.includes(card.name));
-        this.deck = this.shuffleCards(filteredDeck);
-        if (this.usePreludeExtension) {
-            this.preludeDeck = this.shuffleCards(preludeDeck);
-        }
-        this.corporationCards = corporationCards;
+      dealer.deck = dealer.shuffleCards(loader.getProjectCards());
+      dealer.preludeDeck = dealer.shuffleCards(loader.getPreludeCards());
+      dealer.corporationCards = loader.getCorporationCards();
+      return dealer;
     }
 
     public shuffleCards<T>(cards: Array<T>): Array<T> {
-        const deck: Array<T> = [];
-        const copy = cards.slice();
-        while (copy.length) {
-            deck.push(copy.splice(Math.floor(Math.random() * copy.length), 1)[0]);
-        }
-        return deck;
+      const deck: Array<T> = [];
+      const copy = cards.slice();
+      while (copy.length) {
+        deck.push(copy.splice(Math.floor(Math.random() * copy.length), 1)[0]);
+      }
+      return deck;
     }
     public discard(card: IProjectCard): void {
-        this.discarded.push(card);
+      this.discarded.push(card);
     }
-    public dealCard(isResearchPhase: boolean = false): IProjectCard {
-        if (this.deck.length === 0) {
-            this.deck = this.shuffleCards(this.discarded);
-            this.discarded = [];
-        }
-        let result: IProjectCard | undefined;
-        if (isResearchPhase) {
-            result = this.deck.shift();
-        } else {
-            result = this.deck.pop();
-        }
+    public dealCard(game: Game, isResearchPhase: boolean = false): IProjectCard {
+      let result: IProjectCard | undefined;
+      if (isResearchPhase) {
+        result = this.deck.shift();
+      } else {
+        result = this.deck.pop();
+      }
 
-        if (result === undefined) {
-            throw "Unexpected empty deck";
-        }
-        return result;
+      if (result === undefined) {
+        throw 'Unexpected empty deck';
+      }
+
+      if (this.deck.length === 0) {
+        game.log('The discard pile has been shuffled to form a new deck.');
+        this.deck = this.shuffleCards(this.discarded);
+        this.discarded = [];
+      }
+
+      return result;
     }
+
+    public drawProjectCardsByCondition(game: Game, total: number, include: (card: IProjectCard) => boolean) {
+      const result: Array<IProjectCard> = [];
+      const discardedCards = new Set<CardName>();
+
+      while (result.length < total) {
+        if (discardedCards.size >= this.getDeckSize() + this.getDiscardedSize()) {
+          game.log('discarded every card without match');
+          break;
+        }
+        const projectCard = this.dealCard(game);
+        if (include(projectCard)) {
+          result.push(projectCard);
+        } else {
+          discardedCards.add(projectCard.name);
+          this.discard(projectCard);
+        }
+      }
+      if (discardedCards.size > 0) {
+        LogHelper.logDiscardedCards(game, Array.from(discardedCards));
+      }
+
+      return result;
+    }
+
     // Prelude deck does not need discard and reshuffle mecanisms
     public dealPreludeCard(): IProjectCard {
-        const result: IProjectCard | undefined = this.preludeDeck.pop();
-        if (result === undefined) {
-            throw "Unexpected empty prelude deck";
-        }
-        // All Prelude cards are expected to subclass IProjectCard
-        return result;
-    }
-
-    // Function used to rebuild each objects
-    public loadFromJSON(d: SerializedDealer): Dealer {
-        // Assign each attributes
-        const o = Object.assign(this, d);
-        const cardFinder = new CardFinder();
-        // Rebuild deck
-        this.deck = d.deck.map((element: IProjectCard)  => {
-            return cardFinder.getProjectCardByName(element.name)!;
-        });
-
-        // Rebuild prelude deck
-        this.preludeDeck = d.preludeDeck.map((element: IProjectCard)  => {
-            return cardFinder.getProjectCardByName(element.name)!;
-        });
-
-        // Rebuild the discard
-        this.discarded = d.discarded.map((element: IProjectCard)  => {
-            return cardFinder.getProjectCardByName(element.name)!;
-        });
-        
-        return o;
+      const result: IProjectCard | undefined = this.preludeDeck.pop();
+      if (result === undefined) {
+        throw 'Unexpected empty prelude deck';
+      }
+      // All Prelude cards are expected to subclass IProjectCard
+      return result;
     }
 
     public getDeckSize(): number {
-        return this.deck.length
+      return this.deck.length;
+    }
+
+    public getDiscardedSize(): number {
+      return this.discarded.length;
+    }
+
+    public static deserialize(d: SerializedDealer): Dealer {
+      const dealer = new Dealer();
+      const cardFinder = new CardFinder();
+
+      dealer.corporationCards = cardFinder.corporationCardsFromJSON(d.corporationCards);
+      dealer.deck = cardFinder.cardsFromJSON(d.deck);
+      dealer.discarded = cardFinder.cardsFromJSON(d.discarded);
+      dealer.preludeDeck = cardFinder.cardsFromJSON(d.preludeDeck);
+      return dealer;
+    }
+
+    public serialize(): SerializedDealer {
+      return {
+        corporationCards: this.corporationCards.map((c) => c.name),
+        deck: this.deck.map((c) => c.name),
+        discarded: this.discarded.map((c) => c.name),
+        preludeDeck: this.preludeDeck.map((c) => c.name),
+      };
     }
 }

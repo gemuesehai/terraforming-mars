@@ -1,73 +1,74 @@
-import { expect } from "chai";
-import { Enceladus } from "../../src/colonies/Enceladus";
-import { Tardigrades } from "../../src/cards/Tardigrades";
-import { RegolithEaters } from "../../src/cards/RegolithEaters";
-import { Color } from "../../src/Color";
-import { Player } from "../../src/Player";
-import { Game } from "../../src/Game";
-import { AddResourcesToCard } from "../../src/deferredActions/AddResourcesToCard";
+import {expect} from 'chai';
+import {RegolithEaters} from '../../src/cards/base/RegolithEaters';
+import {Tardigrades} from '../../src/cards/base/Tardigrades';
+import {Enceladus} from '../../src/colonies/Enceladus';
+import {AddResourcesToCard} from '../../src/deferredActions/AddResourcesToCard';
+import {Game} from '../../src/Game';
+import {Player} from '../../src/Player';
+import {TestPlayers} from '../TestingUtils';
 
-describe("Enceladus", function() {
-    let enceladus: Enceladus, tardigrades: Tardigrades, player: Player, player2: Player, game: Game;
+describe('Enceladus', function() {
+  let enceladus: Enceladus; let tardigrades: Tardigrades; let player: Player; let player2: Player; let game: Game;
 
-    beforeEach(function() {
-        enceladus = new Enceladus();
-        tardigrades = new Tardigrades();
-        player = new Player("test", Color.BLUE, false);
-        player2 = new Player("test2", Color.RED, false);
-        game = new Game("foobar", [player, player2], player);
-        game.gameOptions.coloniesExtension = true;
-        game.colonies.push(enceladus);
-    });
+  beforeEach(function() {
+    enceladus = new Enceladus();
+    tardigrades = new Tardigrades();
+    player = TestPlayers.BLUE.newPlayer();
+    player2 = TestPlayers.RED.newPlayer();
+    game = Game.newInstance('foobar', [player, player2], player);
+    game.gameOptions.coloniesExtension = true;
+    game.colonies.push(enceladus);
+  });
 
-    it("Should activate", function() {
-        expect(enceladus.isActive).is.false;
-        player.playCard(game, tardigrades);
-        expect(enceladus.isActive).is.true;
-    });
+  it('Should activate', function() {
+    expect(enceladus.isActive).is.false;
+    player.playCard(tardigrades);
+    expect(enceladus.isActive).is.true;
+  });
 
-    it("Should build", function() {
-        player.playCard(game, tardigrades);
-        enceladus.onColonyPlaced(player, game);
+  it('Should build', function() {
+    player.playCard(tardigrades);
+    enceladus.addColony(player);
 
-        expect(game.deferredActions).has.lengthOf(1);
-        const action = game.deferredActions.shift()!;
-        expect(action).to.be.an.instanceof(AddResourcesToCard);
-        expect(action.player).to.eq(player);
-        // Should directly add to Tardigrades, since there's no other target
-        action.execute();
+    expect(game.deferredActions).has.lengthOf(1);
+    const action = game.deferredActions.pop()!;
+    expect(action).to.be.an.instanceof(AddResourcesToCard);
+    expect(action.player).to.eq(player);
+    // Should directly add to Tardigrades, since there's no other target
+    action.execute();
 
-        expect(tardigrades.resourceCount).to.eq(3);
-    });
+    expect(tardigrades.resourceCount).to.eq(3);
+  });
 
-    it("Should trade", function() {
-        player.playCard(game, tardigrades);
-        enceladus.trade(player, game);
+  it('Should trade', function() {
+    player.playCard(tardigrades);
+    enceladus.trade(player);
 
-        expect(game.deferredActions).has.lengthOf(1);
-        const action = game.deferredActions.shift()!;
-        expect(action).to.be.an.instanceof(AddResourcesToCard);
-        expect(action.player).to.eq(player);
-        // Should directly add to Tardigrades, since there's no other target
-        action.execute();
+    // Should have GiveColonyBonus, AddResourcesToCard and decrease track
+    expect(game.deferredActions).has.lengthOf(3);
+    game.deferredActions.pop(); // GiveColonyBonus
 
-        expect(tardigrades.resourceCount).to.eq(1);
-    });
+    const action = game.deferredActions.pop()!; // AddResourcesToCard
+    expect(action).to.be.an.instanceof(AddResourcesToCard);
+    expect(action.player).to.eq(player);
+    // Should directly add to Tardigrades, since there's no other target
+    action.execute();
 
-    it("Should give trade bonus", function() {
-        const regolithEaters = new RegolithEaters();
-        player.playCard(game, tardigrades);
-        player2.playCard(game, regolithEaters);
+    expect(tardigrades.resourceCount).to.eq(1);
+  });
 
-        enceladus.onColonyPlaced(player, game);
-        game.deferredActions.shift()!.execute(); // Gain placement microbes
+  it('Should give trade bonus', function() {
+    const regolithEaters = new RegolithEaters();
+    player.playCard(tardigrades);
+    player2.playCard(regolithEaters);
 
-        enceladus.trade(player2, game);
-        game.deferredActions.shift()!.execute(); // Gain trade microbes
+    enceladus.addColony(player);
+    game.deferredActions.pop()!.execute(); // Gain placement microbes
 
-        game.deferredActions.runAll(() => {}); // Trade bonus
+    enceladus.trade(player2);
+    game.deferredActions.runAll(() => {}); // Gain Trade & Bonus
 
-        expect(tardigrades.resourceCount).to.eq(4);
-        expect(regolithEaters.resourceCount).to.eq(1);
-    });
+    expect(tardigrades.resourceCount).to.eq(4);
+    expect(regolithEaters.resourceCount).to.eq(1);
+  });
 });

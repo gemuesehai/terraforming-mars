@@ -1,8 +1,10 @@
-import { CardRequirements } from "./CardRequirements";
+import {CardRenderer} from '../cards/render/CardRenderer';
+import {CardRenderDynamicVictoryPoints} from './render/CardRenderDynamicVictoryPoints';
+import {ICardRenderDescription} from './render/ICardRenderDescription';
 
 export interface CardMetadata {
-    cardNumber: string;
-    description?: string;
-    requirements?: CardRequirements;
-    victoryPoints?: number; //TODO(chosta): class to handle points per tag and other special cases
+  cardNumber: string;
+  description?: string | ICardRenderDescription;
+  renderData?: CardRenderer;
+  victoryPoints?: number | CardRenderDynamicVictoryPoints;
 }

@@ -1,160 +1,179 @@
 
-import Vue from "vue";
-import * as constants from "../constants";
-import { BoardSpace } from "./BoardSpace";
-import { IAresData } from "../ares/IAresData";
-import { SpaceModel } from "../models/SpaceModel";
-import { SpaceType } from "../SpaceType";
-import { PreferencesManager } from "./PreferencesManager";
+import Vue from 'vue';
+import * as constants from '../constants';
+import {BoardSpace} from './BoardSpace';
+import {IAresData} from '../ares/IAresData';
+import {SpaceModel} from '../models/SpaceModel';
+import {SpaceType} from '../SpaceType';
+import {PreferencesManager} from './PreferencesManager';
 // @ts-ignore
-import { $t } from "../directives/i18n";
+import {$t} from '../directives/i18n';
+import {SpaceId} from '../boards/ISpace';
 
 class GlobalParamLevel {
-    constructor(public value: number, public isActive: boolean, public strValue: string) {
+  constructor(public value: number, public isActive: boolean, public strValue: string) {
 
-    }
+  }
 }
 
 class AlertDialog {
     static shouldAlert = true;
 }
 
-export const Board = Vue.component("board", {
-    props: {
-        spaces: {
-            type: Object as () => Array<SpaceModel>
+export const Board = Vue.component('board', {
+  props: {
+    spaces: {
+      type: Array as () => Array<SpaceModel>,
+    },
+    venusNextExtension: {
+      type: Boolean,
+    },
+    venusScaleLevel: {
+      type: Number,
+    },
+    boardName: {
+      type: String,
+    },
+    oceans_count: {
+      type: Number,
+    },
+    oxygen_level: {
+      type: Number,
+    },
+    temperature: {
+      type: Number,
+    },
+    shouldNotify: {
+      type: Boolean,
+    },
+    aresExtension: {
+      type: Boolean,
+    },
+    aresData: {
+      type: Object as () => IAresData | undefined,
+    },
+  },
+  components: {
+    'board-space': BoardSpace,
+  },
+  data: function() {
+    return {
+      'constants': constants,
+      'isTileHidden': false,
+    };
+  },
+  mounted: function() {
+    if (this.marsIsTerraformed() && this.shouldNotify && AlertDialog.shouldAlert && PreferencesManager.loadValue('show_alerts') === '1') {
+      alert('Mars is Terraformed!');
+      AlertDialog.shouldAlert = false;
+    };
+  },
+  methods: {
+    getAllSpacesOnMars: function(): Array<SpaceModel> {
+      const boardSpaces: Array<SpaceModel> = this.spaces;
+      boardSpaces.sort(
+        (space1: SpaceModel, space2: SpaceModel) => {
+          return parseInt(space1.id) - parseInt(space2.id);
         },
-        venusNextExtension: {
-            type: Boolean
-        },
-        venusScaleLevel: {
-            type: Number
-        },
-        boardName: {
-            type: String
-        },
-        oceans_count: {
-            type: Number
-        },
-        oxygen_level: {
-            type: Number
-        },
-        temperature: {
-            type: Number
-        },
-        shouldNotify: {
-            type: Boolean
-        },
-        aresExtension: {
-            type: Boolean
-        },
-        aresData: {
-            type: Object as () => IAresData | undefined
+      );
+      return boardSpaces.filter((s: SpaceModel) => {
+        return s.spaceType !== SpaceType.COLONY;
+      });
+    },
+    getSpaceById: function(spaceId: SpaceId) {
+      for (const space of this.spaces) {
+        if (space.id === spaceId) {
+          return space;
         }
+      }
+      throw 'Board space not found by id \'' + spaceId + '\'';
     },
-    components: {
-        "board-space": BoardSpace
-    },
-    data: function () {
-        return {
-            "constants": constants
-        }
-    },
-    mounted: function () {
-        if (this.marsIsTerraformed() && this.shouldNotify && AlertDialog.shouldAlert && PreferencesManager.loadValue("show_alerts") === "1") {
-            alert("Mars is Terraformed!");
-            AlertDialog.shouldAlert = false;
-        };
-    },
-    methods: {
-        getAllSpacesOnMars: function (): Array<SpaceModel> {
-            const boardSpaces: Array<SpaceModel> = this.spaces;
-            boardSpaces.sort(
-                (space1: SpaceModel, space2: SpaceModel) => {return parseInt(space1.id) - parseInt(space2.id)}
-            );
-            return boardSpaces.filter((s: SpaceModel) => {return s.spaceType !== SpaceType.COLONY})
-        },
-        getSpaceById: function (spaceId: string) {
-            for (const space of this.spaces) {
-                if (space.id === spaceId) {
-                    return space
-                }
-            }
-            throw "Board space not found by id '" + spaceId + "'"
-        },
-        getValuesForParameter: function (targetParameter: string): Array<GlobalParamLevel> {
-            const values: Array<GlobalParamLevel> = [];
-            let startValue: number;
-            let endValue: number;
-            let step: number;
-            let curValue: number;
-            let strValue: string;
+    getValuesForParameter: function(targetParameter: string): Array<GlobalParamLevel> {
+      const values: Array<GlobalParamLevel> = [];
+      let startValue: number;
+      let endValue: number;
+      let step: number;
+      let curValue: number;
+      let strValue: string;
 
-            switch (targetParameter) {
-                case "oxygen":
-                    startValue = constants.MIN_OXYGEN_LEVEL;
-                    endValue = constants.MAX_OXYGEN_LEVEL;
-                    step = 1;
-                    curValue = this.oxygen_level;
-                    break;
-                case "temperature":
-                    startValue = constants.MIN_TEMPERATURE;
-                    endValue = constants.MAX_TEMPERATURE;
-                    step = 2;
-                    curValue = this.temperature;
-                    break;
-                case "venus":
-                    startValue = constants.MIN_VENUS_SCALE;
-                    endValue = constants.MAX_VENUS_SCALE;
-                    step = 2;
-                    curValue = this.venusScaleLevel;
-                    break;
-                default:
-                    throw "Wrong parameter to get values from";
-            }
+      switch (targetParameter) {
+      case 'oxygen':
+        startValue = constants.MIN_OXYGEN_LEVEL;
+        endValue = constants.MAX_OXYGEN_LEVEL;
+        step = 1;
+        curValue = this.oxygen_level;
+        break;
+      case 'temperature':
+        startValue = constants.MIN_TEMPERATURE;
+        endValue = constants.MAX_TEMPERATURE;
+        step = 2;
+        curValue = this.temperature;
+        break;
+      case 'venus':
+        startValue = constants.MIN_VENUS_SCALE;
+        endValue = constants.MAX_VENUS_SCALE;
+        step = 2;
+        curValue = this.venusScaleLevel;
+        break;
+      default:
+        throw 'Wrong parameter to get values from';
+      }
 
-            for (let value: number = endValue; value >= startValue; value -= step) {
-                strValue = (targetParameter === "temperature" && value > 0) ? "+"+value : value.toString();
-                values.push(
-                    new GlobalParamLevel(value, value === curValue, strValue)
-                )
-            }
-            return values;
-        },
-        getScaleCSS: function (paramLevel: GlobalParamLevel): string {
-            let css = "global-numbers-value val-" + paramLevel.value + " ";
-            if (paramLevel.isActive) {
-                css += "val-is-active";
-            }
-            return css
-        },
-        marsIsTerraformed: function () {
-            const temperatureMaxed = this.temperature === constants.MAX_TEMPERATURE;
-            const oceansMaxed = this.oceans_count === constants.MAX_OCEAN_TILES;
-            const oxygenMaxed = this.oxygen_level === constants.MAX_OXYGEN_LEVEL;
-            const venusMaxed = this.venusScaleLevel === constants.MAX_VENUS_SCALE;
-
-            if (this.venusNextExtension) {
-                return temperatureMaxed && oceansMaxed && oxygenMaxed && venusMaxed;
-            } else {
-                return temperatureMaxed && oceansMaxed && oxygenMaxed;
-            }
-        },
-        oceansValue: function() {
-            const oceans_count = this.oceans_count || 0;
-            const leftover = constants.MAX_OCEAN_TILES - oceans_count;
-            if (leftover === 0) {
-                return `<img width="26" src="/assets/misc/circle-checkmark.png" class="board-ocean-checkmark" :alt="$t('Completed!')">`
-            } else {
-                return `${oceans_count}/${constants.MAX_OCEAN_TILES}`
-            }
-        },
-        getGameBoardClassName: function():string {
-            return this.venusNextExtension ? "board-cont board-with-venus" : "board-cont board-without-venus";
-        }
+      for (let value: number = endValue; value >= startValue; value -= step) {
+        strValue = (targetParameter === 'temperature' && value > 0) ? '+'+value : value.toString();
+        values.push(
+          new GlobalParamLevel(value, value === curValue, strValue),
+        );
+      }
+      return values;
     },
-    template: `
+    getScaleCSS: function(paramLevel: GlobalParamLevel): string {
+      let css = 'global-numbers-value val-' + paramLevel.value + ' ';
+      if (paramLevel.isActive) {
+        css += 'val-is-active';
+      }
+      return css;
+    },
+    marsIsTerraformed: function() {
+      const temperatureMaxed = this.temperature === constants.MAX_TEMPERATURE;
+      const oceansMaxed = this.oceans_count === constants.MAX_OCEAN_TILES;
+      const oxygenMaxed = this.oxygen_level === constants.MAX_OXYGEN_LEVEL;
+      const venusMaxed = this.venusScaleLevel === constants.MAX_VENUS_SCALE;
+
+      if (this.venusNextExtension) {
+        return temperatureMaxed && oceansMaxed && oxygenMaxed && venusMaxed;
+      } else {
+        return temperatureMaxed && oceansMaxed && oxygenMaxed;
+      }
+    },
+    oceansValue: function() {
+      const oceans_count = this.oceans_count || 0;
+      const leftover = constants.MAX_OCEAN_TILES - oceans_count;
+      if (leftover === 0) {
+        return '<img width="26" src="/assets/misc/circle-checkmark.png" class="board-ocean-checkmark" :alt="$t(\'Completed!\')">';
+      } else {
+        return `${oceans_count}/${constants.MAX_OCEAN_TILES}`;
+      }
+    },
+    getGameBoardClassName: function():string {
+      return this.venusNextExtension ? 'board-cont board-with-venus' : 'board-cont board-without-venus';
+    },
+    toggleHideTile: function() {
+      this.isTileHidden = !this.isTileHidden;
+    },
+    toggleHideTileLabel: function(): string {
+      return this.isTileHidden ? 'show tiles' : 'hide tiles';
+    },
+    checkHideTile: function():boolean {
+      return this.isTileHidden;
+    },
+  },
+  template: `
     <div :class="getGameBoardClassName()">
+        <div class="hide-tile-button-container">
+        <div class="seasonal-perseverance" title="Mars Preserverance landing"></div>
+          <div class="hide-tile-button" v-on:click.prevent="toggleHideTile()">{{ toggleHideTileLabel() }}</div>
+        </div>
         <div class="board-outer-spaces">
             <board-space :space="getSpaceById('01')" text="Ganymede Colony"></board-space>
             <board-space :space="getSpaceById('02')" text="Phobos Space Haven"></board-space>
@@ -202,13 +221,15 @@ export const Board = Vue.component("board", {
         </div>
 
         <div class="board" id="main_board">
-            <board-space :space="curSpace" :is_selectable="true" :key="'board-space-'+curSpace.id" :aresExtension="aresExtension" v-for="curSpace in getAllSpacesOnMars()"></board-space>
+            <board-space :space="curSpace" :is_selectable="true" :key="'board-space-'+curSpace.id" :aresExtension="aresExtension" :isTileHidden="checkHideTile()" v-for="curSpace in getAllSpacesOnMars()"></board-space>
             <svg id="board_legend" height="550" width="630" class="board-legend">
                 <g v-if="boardName === 'tharsis'" id="ascraeus_mons" transform="translate(95, 192)">
                     <text class="board-caption">
                         <tspan dy="15">Ascraeus</tspan>
                         <tspan x="12" dy="12">Mons</tspan>
                     </text>
+                    <line x1="38" y1="20" x2="88" y2="26" class="board-line"></line>
+                    <text x="86" y="29" class="board-caption board_caption--black">●</text>
                 </g>
                 
                 <g v-if="boardName === 'tharsis'" id="pavonis_mons" transform="translate(90, 230)">
@@ -216,13 +237,18 @@ export const Board = Vue.component("board", {
                         <tspan dy="15">Pavonis</tspan>
                         <tspan x="4" dy="12">Mons</tspan>
                     </text>
+                    <line x1="35" y1="25" x2="72" y2="30" class="board-line" />
+                    <text x="66" y="33" class="board-caption board_caption--black">●</text>              
                 </g>
-                
+
+
                 <g v-if="boardName === 'tharsis'" id="arsia_mons" transform="translate(77, 275)">
                     <text class="board-caption">
                         <tspan dy="15">Arsia</tspan>
                         <tspan x="-2" dy="12">Mons</tspan>
                     </text>
+                    <line x1="25" y1="20" x2="49" y2="26" class="board-line" />
+                    <text x="47" y="29" class="board-caption board_caption--black">●</text>              
                 </g>
 
                 <g v-if="boardName === 'tharsis'" id="tharsis_tholus" transform="translate(85, 175)">
@@ -273,5 +299,5 @@ export const Board = Vue.component("board", {
             </svg>
         </div>
     </div>
-    `
+    `,
 });

@@ -1,20 +1,21 @@
-import { expect } from "chai";
-import { Color } from "../../../src/Color";
-import { Player } from "../../../src/Player";
-import { Game } from "../../../src/Game";
-import { ValuableGases } from "../../../src/cards/community/ValuableGases";
+import {expect} from 'chai';
+import {ValuableGases} from '../../../src/cards/community/ValuableGases';
+import {Game} from '../../../src/Game';
+import {Player} from '../../../src/Player';
+import {TestPlayers} from '../../TestingUtils';
 
-describe("ValuableGases", function () {
-    let card : ValuableGases, player : Player, game: Game;
+describe('ValuableGases', function() {
+  let card : ValuableGases; let player : Player;
 
-    beforeEach(function() {
-        card = new ValuableGases();
-        player = new Player("test", Color.BLUE, false);
-        game = new Game("foobar", [player, player], player);
-    });
+  beforeEach(function() {
+    card = new ValuableGases();
+    player = TestPlayers.BLUE.newPlayer();
+    const redPlayer = TestPlayers.RED.newPlayer();
+    Game.newInstance('foobar', [player, redPlayer], player);
+  });
 
-    it("Should play", function () {
-        card.play(player, game);
-        expect(player.megaCredits).to.eq(6);
-    });
+  it('Should play', function() {
+    card.play(player);
+    expect(player.megaCredits).to.eq(6);
+  });
 });
